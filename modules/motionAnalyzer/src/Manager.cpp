@@ -1029,8 +1029,6 @@ bool Manager::configure(ResourceFinder &rf)
     string moduleName = rf.check("name", Value("motionAnalyzer")).asString();
     setName(moduleName.c_str());
 
-    string robot = rf.check("robot", Value("icub")).asString();
-
     opcPort.open(("/" + getName() + "/opc").c_str());
     scopePort.open(("/" + getName() + "/scope").c_str());
     scalerPort.open(("/" + getName() + "/scaler:cmd").c_str());
@@ -1147,8 +1145,6 @@ bool Manager::writeStructToMat(const string& name, const vector< vector< pair<st
         fields[i]=keypoints_skel[0][i].first.c_str();
     }
 
-    matvar_t *field;
-
     size_t dim_struct[2] = {1,1};
 
     size_t nSamples = keypoints_skel.size()-1;
@@ -1172,7 +1168,7 @@ bool Manager::writeStructToMat(const string& name, const vector< vector< pair<st
                 field_vector[j+2*nSamples] = keypoints_skel[j][i].second[2];
             }
 
-            field = Mat_VarCreate(NULL,MAT_C_DOUBLE,MAT_T_DOUBLE,2,dims_field,field_vector.data(),MAT_F_GLOBAL);
+            matvar_t *field = Mat_VarCreate(NULL,MAT_C_DOUBLE,MAT_T_DOUBLE,2,dims_field,field_vector.data(),MAT_F_GLOBAL);
             Mat_VarSetStructFieldByName(matvar, fields[i], 0, field);
         }
 
@@ -1225,10 +1221,9 @@ bool Manager::writeStructToMat(const string& name, const Exercise* ex, mat_t *ma
         return false;
     }
 
-    matvar_t *submatvar;
     for(size_t i=0; i<numMetrics; i++)
     {
-        submatvar=writeStructToMat(metrics[i]);
+        matvar_t *submatvar=writeStructToMat(metrics[i]);
         Mat_VarSetStructFieldByName(met_matvar,fields_metrics[i],0,submatvar);
     }
 

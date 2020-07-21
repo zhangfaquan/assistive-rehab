@@ -44,6 +44,11 @@ class Scaler : public RFModule
     string sel_tag;
     string prev_tag;
 
+public:
+
+    /****************************************************************/
+    Scaler() : hasStarted(false), sel_tag(""), prev_tag("") {}
+
     /****************************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -55,11 +60,6 @@ class Scaler : public RFModule
 
         nsessions=rf.check("nsessions",Value(0)).asInt();
         tbegin=rf.check("tbegin",Value(0.0)).asDouble();
-
-        hasStarted=false;
-        sel_tag="";
-        prev_tag="";
-
         return true;
     }
 
@@ -206,7 +206,6 @@ class Scaler : public RFModule
                 {
                     if(Bottle *idValues = idField->get(1).asList())
                     {
-                        bool hasUpdated=false;
                         for(int i=0; i<idValues->size(); i++)
                         {
                             int id = idValues->get(i).asInt();

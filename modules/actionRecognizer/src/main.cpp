@@ -65,8 +65,11 @@ class Recognizer : public RFModule, public actionRecognizer_IDL
     string action_to_perform;
     ResourceFinder rf;
     
-
 public:
+
+    /********************************************************/
+    Recognizer() : skel_tag(""), starting(false), idx_step(0) { }
+
     /********************************************************/
     bool configure(ResourceFinder &rf_)
     {
@@ -124,10 +127,6 @@ public:
         keypoint2int[KeyPointTag::hip_center] = 18;
         keypoint2int[KeyPointTag::shoulder_center] = 20;
         
-        skel_tag = " ";
-        starting = false;
-        idx_step=0;
-
         // Set up input paths
         pathToGraph = rf.findFileByName(model_name+"_"+part+".meta");
         checkpointPath = pathToGraph.substr(0, pathToGraph.find_last_of("/\\")) + "/" + model_name + "_" + part;

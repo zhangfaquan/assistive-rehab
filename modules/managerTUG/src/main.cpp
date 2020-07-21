@@ -81,24 +81,14 @@ class TriggerManager: public Thread
 public:
 
     /********************************************************/
-    TriggerManager(const string &module_name, const double &min_timeout, const double &max_timeout,
-                   const string &sentence, const bool & simulation, RpcClient *triggerPort,
-                   BufferedPort<Bottle> *speechPort, RpcClient *gazeboPort)
-    {
-        this->module_name=module_name;
-        this->min_timeout=min_timeout;
-        this->max_timeout=max_timeout;
-        this->simulation=simulation;
-        this->sentence=sentence;
-        this->triggerPort=triggerPort;
-        this->speechPort=speechPort;
-        this->gazeboPort=gazeboPort;
-        first_trigger=true;
-        last_start_trigger=false;
-        got_trigger=false;
-        freezing=false;
-        t0=t=Time::now();
-    }
+    TriggerManager(const string &module_name_, const double &min_timeout_, const double &max_timeout_,
+                   const string &sentence_, const bool &simulation_, RpcClient *triggerPort_,
+                   BufferedPort<Bottle> *speechPort_, RpcClient *gazeboPort_) :
+        module_name(module_name_), min_timeout(min_timeout_), max_timeout(max_timeout_),
+        sentence(sentence_), simulation(simulation_), triggerPort(triggerPort_),
+        speechPort(speechPort_), gazeboPort(gazeboPort_), first_trigger(true),
+        last_start_trigger(true), got_trigger(false), freezing(false), t0(Time::now()),
+        t(Time::now()) { }
 
     /********************************************************/
     ~TriggerManager()
@@ -276,25 +266,16 @@ class AnswerManager: public BufferedPort<Bottle>
 public:
 
     /********************************************************/
-    AnswerManager(const string &module_name, const unordered_map<string,string> &speak_map,
-                  const bool &simulation, BufferedPort<Bottle> *speechPort, RpcClient *speechRpc,
-                  RpcClient *gazeboPort)
-    {
-        this->module_name=module_name;
-        this->speak_map=speak_map;
-        this->simulation=simulation;
-        this->speechPort=speechPort;
-        this->speechRpc=speechRpc;
-        this->gazeboPort=gazeboPort;
-        replied=false;
-        silent=true;
-        time=0.0;
-    }
+    AnswerManager(const string &module_name_, const unordered_map<string,string> &speak_map_,
+                  const bool &simulation_, BufferedPort<Bottle> *speechPort_, RpcClient *speechRpc_,
+                  RpcClient *gazeboPort_) : module_name(module_name_), speak_map(speak_map_),
+        simulation(simulation_), speechPort(speechPort_), speechRpc(speechRpc_), gazeboPort(gazeboPort_),
+        time(0.0), silent(true), replied(false) { }
 
     /********************************************************/
     ~AnswerManager()
     {
-    };
+    }
 
     /********************************************************/
     void setExerciseParams(const double &distance, const double &time_high, const double &time_medium)
@@ -468,16 +449,11 @@ class HandManager : public Thread
 public:
 
     /********************************************************/
-    HandManager(const string &module_name, const double &arm_thresh, BufferedPort<Bottle> *opcPort, RpcClient *triggerPort)
-        : tag(""), part(""), skeleton(NULL)
-
-    {
-        this->module_name=module_name;
-        this->arm_thresh=arm_thresh;
-        this->opcPort=opcPort;
-        this->triggerPort=triggerPort;
-        isArmLifted=false;
-    }
+    HandManager(const string &module_name_, const double &arm_thresh_,
+                BufferedPort<Bottle> *opcPort_, RpcClient *triggerPort_)
+        : module_name(module_name_), arm_thresh(arm_thresh_), opcPort(opcPort_),
+          triggerPort(triggerPort_), tag(""), part(""), skeleton(NULL),
+          isArmLifted(false) { }
 
     /********************************************************/
     void set_tag(const string &tag)
@@ -606,9 +582,9 @@ class SpeechParam
 {
     ostringstream ss;
 public:
-    SpeechParam(const int d) { ss<<d; }
-    SpeechParam(const double g) { ss<<g; }
-    SpeechParam(const string &s) { ss<<s; }
+    explicit SpeechParam(const int d) { ss<<d; }
+    explicit SpeechParam(const double g) { ss<<g; }
+    explicit SpeechParam(const string &s) { ss<<s; }
     string get() const { return ss.str(); }
 };
 
@@ -1135,7 +1111,6 @@ class Manager : public RFModule, public managerTUG_IDL
             yError()<<msg;
             return false;
         }
-        start_ex=false;
 
         analyzerPort.open("/"+module_name+"/analyzer:rpc");
         speechRpcPort.open("/"+module_name+"/speech:rpc");
@@ -1185,12 +1160,6 @@ class Manager : public RFModule, public managerTUG_IDL
             }
         }
         set_target(target_sim[0],target_sim[1],target_sim[2]);
-        state=State::idle;
-        interrupting=false;
-        world_configured=false;
-        ok_go=false;
-        connected=false;
-        params_set=false;
         t0=tstart=Time::now();
         return true;
     }
@@ -1578,7 +1547,7 @@ class Manager : public RFModule, public managerTUG_IDL
 
         if (state==State::reach_line)
         {
-            bool navigating;
+            bool navigating=true;
             Bottle cmd,rep;
             cmd.addString("is_navigating");
             if (navigationPort.write(cmd,rep))
@@ -1586,10 +1555,6 @@ class Manager : public RFModule, public managerTUG_IDL
                 if (rep.get(0).asVocab()!=ok)
                 {
                     navigating=false;
-                }
-                else
-                {
-                    navigating=true;
                 }
             }
 
@@ -1824,7 +1789,7 @@ class Manager : public RFModule, public managerTUG_IDL
         {
             yInfo()<<"Test finished in"<<t<<"seconds";
             vector<SpeechParam> p;
-            p.push_back(round(t*10.0)/10.0);
+            p.push_back(SpeechParam(round(t*10.0)/10.0));
             Bottle cmd,rep;
             cmd.addString("stop");
             analyzerPort.write(cmd,rep);
@@ -1928,11 +1893,7 @@ class Manager : public RFModule, public managerTUG_IDL
             }
         }
 
-        RpcClient *tmpPort;
-        if (part=="left")
-        {
-            tmpPort=&leftarmPort;
-        }
+        RpcClient *tmpPort=&leftarmPort;
         if (part=="right")
         {
             tmpPort=&rightarmPort;
@@ -2114,8 +2075,13 @@ class Manager : public RFModule, public managerTUG_IDL
         }
         return true;
     }
-};
 
+public:
+    /****************************************************************/
+    Manager() : start_ex(false), state(State::idle), interrupting(false),
+        world_configured(false), ok_go(false), connected(false), params_set(false) { }
+
+};
 
 /****************************************************************/
 int main(int argc, char *argv[])
@@ -2135,5 +2101,3 @@ int main(int argc, char *argv[])
     Manager manager;
     return manager.runModule(rf);
 }
-
-

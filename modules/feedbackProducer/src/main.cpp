@@ -66,6 +66,10 @@ private:
 public:
 
     /****************************************************************/
+    Feedback() : started(false), first(true), use_robot_template(0),
+        T(eye(4)), T2(eye(4)) { }
+
+    /****************************************************************/
     bool attach(RpcServer &source) override
     {
         return yarp().attachAsServer(source);
@@ -262,11 +266,6 @@ public:
         actionPort.open("/feedbackProducer/action:i");
         rpcPort.open("/feedbackProducer/rpc");
         attach(rpcPort);
-
-        started = false;
-        first = true;
-        use_robot_template = 0;
-        T = T2 = eye(4);
 
         return true;
     }
